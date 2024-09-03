@@ -364,6 +364,16 @@ impl JsRuntimeInspector {
             w.poll_state = PollState::Parked;
             w.parked_thread.replace(thread::current());
           }
+          PollState::Parked => {
+            // This is when a thread was blocked in a previous poll by calling
+            // `thread::park`, but returned from the blocked state without
+            // changing `poll_state` by calling `thread::unpark` by an external
+            // path. So we need to call `thread::park` again.
+            assert_eq!(
+              w.parked_thread.as_ref().map(thread::Thread::id).unwrap(),
+              thread::current().id()
+            );
+          }
           _ => unreachable!(),
         };
         w.poll_state
